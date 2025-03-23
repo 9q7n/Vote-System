@@ -1,0 +1,221 @@
+-- You should put this script in ServerScriptService.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local http = game:GetService("HttpService")
+local NotificationEvent = ReplicatedStorage:WaitForChild("NotificationEvent")
+local StatusEvent = ReplicatedStorage:WaitForChild("StatusEvent")
+local CallbackNotification = ReplicatedStorage:WaitForChild("CallbackNotification")
+local VoteCastEvent = ReplicatedStorage:WaitForChild("VoteCastEvent")
+local Ayes = script.Ayes.Value.Value
+local Abstains = script.Abstains.Value.Value
+local Nays = script.Nays.Value.Value
+local AyeList = script.Ayes.Players.Value
+local NayList = script.Nays.Players.Value
+local AbstainList = script.Abstains.Players.Value
+local VoteName
+local embedColor
+local result
+local webhookUrl = 'REPLACE WITH YOUR WEBHOOK'
+
+local function PrintVoteResult()
+	if Nays < Ayes then embedColor = 1628735 result = "Passes" end
+	if Ayes < Nays then embedColor = 14293016 result = "Fails" end
+	if Ayes == Nays then embedColor = 14010154 result = "Tie" end
+
+	local data = 
+		{
+			content = "",
+			embeds = {
+				{
+					title = script.VoteName.Value,
+					color = embedColor,
+					fields = {
+						{
+							name = "Ayes",
+							value = AyeList
+						},
+						{
+							name = "Abstaining",
+							value = AbstainList
+						},
+						{
+							name = "Nays",
+							value = NayList
+						},
+						{
+							name = "Final result:",
+							value = "**"..result.."**, "..Ayes.."-"..Abstains.."-"..Nays
+						}
+					},
+					footer = {
+						text = (os.date("%m/%d/%Y %I:%M %p")).." (UTC)"
+					}
+				}
+			}
+		}
+	local encodedData = http:JSONEncode(data)
+	http:PostAsync(webhookUrl,encodedData)
+
+end
+
+local function ResetVote()
+	Ayes = 0
+	Abstains = 0
+	Nays = 0
+	AyeList = "None"
+	AbstainList = "None"
+	NayList = "None"
+end
+
+
+NotificationEvent.OnServerEvent:connect(function(plr, nType, voteName)
+	CallbackNotification:FireAllClients(nType, voteName)
+	if nType == "Start" then script.VoteName.Value = voteName end
+
+	StatusEvent:FireAllClients(nType, voteName, Ayes, Abstains, Nays)
+
+	if nType == "Reset" then
+		ResetVote()
+	end
+
+	if nType == "End" then
+		PrintVoteResult()
+		wait(1)
+		ResetVote()
+	end
+
+end)
+
+VoteCastEvent.OnServerEvent:connect(function(plr, vote)
+	if vote == "Aye" then
+		if string.find(NayList, plr.Name) then
+			if NayList == plr.Name then
+				NayList = "None"
+				Nays = Nays - 1
+			else
+				if string.match(NayList, plr.Name.."$") then
+					NayList = string.gsub(NayList, ", "..plr.Name, "")
+					Nays = Nays - 1
+				else
+					NayList = string.gsub(NayList, plr.Name..",", "")
+					Nays = Nays - 1
+				end
+			end
+		else
+			if string.find(AbstainList, plr.Name) then
+				if AbstainList == plr.Name then
+					AbstainList = "None"
+					Abstains = Abstains - 1
+				else
+					if string.match(AbstainList, plr.Name.."$") then
+						AbstainList = string.gsub(AbstainList, ", "..plr.Name, "")
+						Abstains = Abstains - 1
+					else
+						AbstainList = string.gsub(AbstainList, plr.Name..",", "")
+						Abstains = Abstains - 1
+					end
+				end	
+			end
+		end
+
+		if string.find(AyeList, plr.Name) then
+
+		else
+			if AyeList == "None" then
+				AyeList = plr.Name
+				Ayes = Ayes + 1
+			else
+				AyeList = AyeList..", "..plr.Name
+				Ayes = Ayes + 1
+			end			
+		end		
+	end
+
+	if vote == "Nay" then
+		if string.find(AyeList, plr.Name) then
+			if AyeList == plr.Name then
+				AyeList = "None"
+				Ayes = Ayes - 1
+			else
+				if string.match(AyeList, plr.Name.."$") then
+					AyeList = string.gsub(AyeList, ", "..plr.Name, "")
+					Ayes = Ayes - 1
+				else
+					AyeList = string.gsub(AyeList, plr.Name..",", "")
+					Ayes = Ayes - 1
+				end
+			end
+		else
+			if string.find(AbstainList, plr.Name) then
+				if AbstainList == plr.Name then
+					AbstainList = "None"
+					Abstains = Abstains - 1
+				else
+					if string.match(AbstainList, plr.Name.."$") then
+						AbstainList = string.gsub(AbstainList, ", "..plr.Name, "")
+						Abstains = Abstains - 1
+					else
+						AbstainList = string.gsub(AbstainList, plr.Name..",", "")
+						Abstains = Abstains - 1
+					end
+				end	
+			end
+		end
+
+		if string.find(NayList, plr.Name) then
+
+		else
+			if NayList == "None" then
+				NayList = plr.Name
+				Nays = Nays + 1
+			else
+				NayList = NayList..", "..plr.Name
+				Nays = Nays + 1
+			end			
+		end		
+	end
+
+	if vote == "Abstain" then
+		if string.find(AyeList, plr.Name) then
+			if AyeList == plr.Name then
+				AyeList = "None"
+				Ayes = Ayes - 1
+			else
+				if string.match(AyeList, plr.Name.."$") then
+					AyeList = string.gsub(AyeList, ", "..plr.Name, "")
+					Ayes = Ayes - 1
+				else
+					AyeList = string.gsub(AyeList, plr.Name..",", "")
+					Ayes = Ayes - 1
+				end
+			end
+		else
+			if string.find(NayList, plr.Name) then
+				if NayList == plr.Name then
+					NayList = "None"
+					Nays = Nays - 1
+				else
+					if string.match(NayList, plr.Name.."$") then
+						NayList = string.gsub(NayList, ", "..plr.Name, "")
+						Nays = Nays - 1
+					else
+						NayList = string.gsub(NayList, plr.Name..",", "")
+						Nays = Nays - 1
+					end
+				end	
+			end
+		end
+
+		if string.find(AbstainList, plr.Name) then
+
+		else
+			if AbstainList == "None" then
+				AbstainList = plr.Name
+				Abstains = Abstains + 1
+			else
+				AbstainList = AbstainList..", "..plr.Name
+				Abstains = Abstains + 1
+			end			
+		end		
+	end
+end)
